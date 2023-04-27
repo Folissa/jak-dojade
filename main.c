@@ -14,11 +14,15 @@ int main() {
         printf("%s (%d, %d)\n", map.cities[i]->name, map.cities[i]->x, map.cities[i]->y);
     }
 
+    for (int i = 0; i < map.citiesCount; i++) {
+        clear(&map);
+        bfs(map.cities[i], &map);
+    }
+    int x = 3;
     deallocateMemory(&map);
 
     return 0;
 }
-
 
 void initializeMap(map *map) {
     // Input width and height
@@ -30,8 +34,12 @@ void initializeMap(map *map) {
 
     // Create mapVisualisation
     map->mapVisualisation = (char **) calloc(map->height, sizeof(char *));
+    map->visited = (int **) calloc(map->height, sizeof(int *));
+    map->distances = (int **) calloc(map->height, sizeof(int *));
     for (int y = 0; y < map->height; y++) {
         map->mapVisualisation[y] = (char *) calloc(map->width, sizeof(char));
+        map->visited[y] = (int *) calloc(map->width, sizeof(int));
+        map->distances[y] = (int *) calloc(map->width, sizeof(int));
     }
 }
 
@@ -66,6 +74,7 @@ void findCities(map *map) {
         map->cities[i]->name = (char *) calloc((map->maximalCityNameLength), sizeof(char));
         map->cities[i]->x = citiesCoordinates[i][X_COORDINATE];
         map->cities[i]->y = citiesCoordinates[i][Y_COORDINATE];
+        map->cities[i]->neighboursCount = 0;
         // TODO: map->citiesCount - 1 or map->citiesCount?
         map->cities[i]->neighbours = (neighbour **) calloc((map->citiesCount - 1), sizeof(neighbour *));
     }
@@ -138,13 +147,127 @@ void findNames(map *map) {
     }
 }
 
+void enqueue(int x, int y, queue *queue) {
+    node *newNode = malloc(sizeof(node));
+    newNode->next = NULL;
+    newNode->x = x;
+    newNode->y = y;
+    if (queue->tail == NULL) {
+        queue->head = queue->tail = newNode;
+        return;
+    }
+    queue->tail->next = newNode;
+    queue->tail = newNode;
+}
+
+void dequeue(queue *queue) {
+    if (queue->head == NULL) {
+        return;
+    }
+    node *temporary = queue->head;
+    queue->head = queue->head->next;
+    if (queue->head == NULL) {
+        queue->tail = NULL;
+    }
+    free(temporary);
+}
+
+int isEmpty(queue *queue) {
+    return queue->head == NULL;
+}
+
+void bfs(city *sourceCity, map *map) {
+    queue queue;
+    queue.head = NULL, queue.tail = NULL;
+
+    // Directions: up, right, down, left
+    int directionX[] = {0, 1, 0, -1};
+    int directionY[] = {-1, 0, 1, 0};
+
+    enqueue(sourceCity->x, sourceCity->y, &queue);
+    map->visited[sourceCity->y][sourceCity->x] = 1;
+    map->distances[sourceCity->y][sourceCity->x] = 0;
+
+    while (!isEmpty(&queue)) {
+        int currentX = queue.head->x;
+        int currentY = queue.head->y;
+        dequeue(&queue);
+        for (int i = 0; i < NUMBER_OF_DIRECTIONS; i++) {
+            int newX = currentX + directionX[i];
+            int newY = currentY + directionY[i];
+            if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
+                continue;
+            }
+            if (map->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+                // TODO: Check if this works
+                // TODO: If we find the same neighbour again check if the distance is smaller
+                neighbour *temporary = findNeighbour(newX, newY, sourceCity);
+                if (temporary != NULL && map->distances[currentY][currentX] + 1 < temporary->distance) {
+                    temporary->distance = map->distances[currentY][currentX] + 1;
+                    continue;
+                }
+            }
+            if (!map->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+                sourceCity->neighbours[sourceCity->neighboursCount] = (neighbour *) malloc(sizeof(neighbour));
+                sourceCity->neighbours[sourceCity->neighboursCount]->city = findCity(newX, newY, map);
+                sourceCity->neighbours[sourceCity->neighboursCount]->distance = map->distances[currentY][currentX] + 1;
+                sourceCity->neighboursCount++;
+                map->visited[newY][newX] = 1;
+                continue;
+            }
+            if (map->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
+                continue;
+            }
+            map->visited[newY][newX] = 1;
+            map->distances[newY][newX] = map->distances[currentY][currentX] + 1;
+            enqueue(newX, newY, &queue);
+        }
+    }
+}
+
+void clear(map *map) {
+    for (int y = 0; y < map->height; y++) {
+        for (int x = 0; x < map->width; x++) {
+            map->visited[y][x] = 0;
+            map->distances[y][x] = -1;
+        }
+    }
+}
+
+// TODO: Optimize this function
+city *findCity(int x, int y, map *map) {
+    for (int i = 0; i < map->citiesCount; i++) {
+        if (map->cities[i]->x == x && map->cities[i]->y == y) {
+            return map->cities[i];
+        }
+    }
+    return NULL;
+}
+
+neighbour *findNeighbour(int x, int y, city *city) {
+    for (int i = 0; i < city->neighboursCount; i++) {
+        if (city->neighbours[i]->city->x == x && city->neighbours[i]->city->y == y) {
+            return city->neighbours[i];
+        }
+    }
+    return NULL;
+}
+
+
 void deallocateMemory(map *map) {
     for (int y = 0; y < map->height; y++) {
         free(map->mapVisualisation[y]);
+        free(map->visited[y]);
+        free(map->distances[y]);
     }
+    free(map->visited);
+    free(map->distances);
     free(map->mapVisualisation);
     for (int i = 0; i < map->citiesCount; i++) {
         free(map->cities[i]->name);
+        for (int j = 0; j < map->cities[i]->neighboursCount; j++) {
+            free(map->cities[i]->neighbours[j]);
+        }
         free(map->cities[i]->neighbours);
         free(map->cities[i]);
     }
