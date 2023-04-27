@@ -1,56 +1,75 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-#define COORDINATES_SIZE 2
-#define X_COORDINATE 0
-#define Y_COORDINATE 1
-
-typedef struct city {
-    char *name;
-    int x;
-    int y;
-    struct city **neighbours;
-} city;
+#include "main.h"
 
 int main() {
-    int width, height;
 
+    map map;
+
+    initializeMap(&map);
+    findCities(&map);
+    findNames(&map);
+
+    // Output cities
+    for (int i = 0; i < map.citiesCount; i++) {
+        printf("%s (%d, %d)\n", map.cities[i]->name, map.cities[i]->x, map.cities[i]->y);
+    }
+
+    deallocateMemory(&map);
+
+    return 0;
+}
+
+
+void initializeMap(map *map) {
     // Input width and height
-    scanf(" %d", &width);
-    scanf(" %d", &height);
+    scanf(" %d", &map->width);
+    scanf(" %d", &map->height);
 
-    // Create a map
-    char input;
+    // We need to add citiesCount for the null terminator
+    map->maximalCityNameLength = map->width + map->citiesCount;
+
+    // Create mapVisualisation
     // https://linuxhint.com/two-dimensional-array-malloc-c-programming/
-    char *map = (char *) calloc((height * width), sizeof(char));
+    map->mapVisualisation = (char *) calloc((map->height * map->width), sizeof(char));
+}
+
+void findCities(map *map) {
+    map->citiesCount = 0;
 
     // Create cities coordinates array
-    int citiesCount = 0;
-    const int maximalCitiesCount = height * width;
+    const int maximalCitiesCount = map->height * map->width;
     int *citiesCoordinates = (int *) calloc((maximalCitiesCount * COORDINATES_SIZE), sizeof(int));
 
-    // Input the map data
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    char input;
+
+    // Input the mapVisualisation data
+    for (int y = 0; y < map->height; y++) {
+        for (int x = 0; x < map->width; x++) {
             scanf(" %c", &input);
-            *(map + y * width + x) = input;
+            *(map->mapVisualisation + y * map->width + x) = input;
             // If this is a city, add its coordinates to the citiesCoordinates array
             if (input == '*') {
-                *(citiesCoordinates + citiesCount * COORDINATES_SIZE + X_COORDINATE) = x;
-                *(citiesCoordinates + citiesCount * COORDINATES_SIZE + Y_COORDINATE) = y;
-                citiesCount++;
+                *(citiesCoordinates + map->citiesCount * COORDINATES_SIZE + X_COORDINATE) = x;
+                *(citiesCoordinates + map->citiesCount * COORDINATES_SIZE + Y_COORDINATE) = y;
+                map->citiesCount++;
             }
         }
     }
+    map->cities = (city **) calloc(map->citiesCount, sizeof(city *));
+    for (int i = 0; i < map->citiesCount; i++) {
+        map->cities[i] = malloc(sizeof(city));
+        map->cities[i]->name = (char *) calloc((map->maximalCityNameLength), sizeof(char));
+        map->cities[i]->x = *(citiesCoordinates + i * COORDINATES_SIZE + X_COORDINATE);
+        map->cities[i]->y = *(citiesCoordinates + i * COORDINATES_SIZE + Y_COORDINATE);
+        map->cities[i]->neighbours = (city **) calloc((map->citiesCount), sizeof(city *));
+    }
 
-    // We need to add citiesCount to the size of the array to account for the null terminator
-    const int maximalCityNameLength = width + citiesCount;
+    free(citiesCoordinates);
+}
 
-    char *citiesNames = (char *) calloc((citiesCount * maximalCityNameLength), sizeof(char));
-
-    for (int i = 0; i < citiesCount; i++) {
-        int x = *(citiesCoordinates + i * COORDINATES_SIZE + X_COORDINATE);
-        int y = *(citiesCoordinates + i * COORDINATES_SIZE + Y_COORDINATE);
+void findNames(map *map) {
+    for (int i = 0; i < map->citiesCount; i++) {
+        int x = (*(map->cities + i))->x;
+        int y = (*(map->cities + i))->y;
         int cityNameX = x;
         int cityNameY = y;
         for (int cityNameYTemporary = y - 1; cityNameYTemporary <= y + 1; cityNameYTemporary++) {
@@ -59,21 +78,25 @@ int main() {
                 if (cityNameXTemporary == x && cityNameYTemporary == y) {
                     continue;
                 }
-                if (cityNameXTemporary < 0 || cityNameXTemporary >= width || cityNameYTemporary < 0 ||
-                    cityNameYTemporary >= height) {
+                if (cityNameXTemporary < 0 || cityNameXTemporary >= map->width || cityNameYTemporary < 0 ||
+                    cityNameYTemporary >= map->height) {
                     continue;
                 }
-                if (('A' <= *(map + cityNameYTemporary * width + cityNameXTemporary) &&
-                     *(map + cityNameYTemporary * width + cityNameXTemporary) <= 'Z') ||
-                    ('0' <= *(map + cityNameYTemporary * width + cityNameXTemporary) &&
-                     *(map + cityNameYTemporary * width + cityNameXTemporary) <= '9')) {
+                if (('A' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) &&
+                     *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) <= 'Z') ||
+                    ('a' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) &&
+                     *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) <= 'a') ||
+                    ('0' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) &&
+                     *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary) <= '9')) {
 
                     // Move left until we find the first letter
                     while (cityNameXTemporary - 1 >= 0 &&
-                           ('A' <= *(map + cityNameYTemporary * width + cityNameXTemporary - 1) &&
-                            *(map + cityNameYTemporary * width + cityNameXTemporary - 1) <= 'Z') ||
-                           ('0' <= *(map + cityNameYTemporary * width + cityNameXTemporary - 1) &&
-                            *(map + cityNameYTemporary * width + cityNameXTemporary - 1) <= '9')) {
+                           ('A' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) &&
+                            *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) <= 'Z') ||
+                           ('a' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) &&
+                            *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) <= 'z') ||
+                           ('0' <= *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) &&
+                            *(map->mapVisualisation + cityNameYTemporary * map->width + cityNameXTemporary - 1) <= '9')) {
                         cityNameXTemporary--;
                     }
 
@@ -88,45 +111,29 @@ int main() {
                 break;
             }
         }
-        // TODO: Make this a function
         // Uncover city name
         int j = 0;
-        while (cityNameX < width &&
-               ('A' <= *(map + cityNameY * width + cityNameX) && *(map + cityNameY * width + cityNameX) <= 'Z') ||
-               ('0' <= *(map + cityNameY * width + cityNameX) && *(map + cityNameY * width + cityNameX) <= '9')) {
-            *(citiesNames + i * maximalCityNameLength + j) = *(map + cityNameY * width + cityNameX);
+        while (cityNameX < map->width &&
+               ('A' <= *(map->mapVisualisation + cityNameY * map->width + cityNameX) &&
+                *(map->mapVisualisation + cityNameY * map->width + cityNameX) <= 'Z') ||
+               ('a' <= *(map->mapVisualisation + cityNameY * map->width + cityNameX) &&
+                *(map->mapVisualisation + cityNameY * map->width + cityNameX) <= 'z') ||
+               ('0' <= *(map->mapVisualisation + cityNameY * map->width + cityNameX) &&
+                *(map->mapVisualisation + cityNameY * map->width + cityNameX) <= '9')) {
+            *(map->cities[i]->name + j) = *(map->mapVisualisation + cityNameY * map->width + cityNameX);
             j++;
             cityNameX++;
         }
-        *(citiesNames + i * maximalCityNameLength + j) = '\0';
+        *(map->cities[i]->name + j) = '\0';
     }
+}
 
-    int **cityMaps = (int **) calloc((citiesCount * (height * width)), sizeof(int));
-
-
-    for (int i = 0; i < citiesCount; i++) {
-
+void deallocateMemory(map *map) {
+    free(map->mapVisualisation);
+    for (int i = 0; i < map->citiesCount; i++) {
+        free(map->cities[i]->name);
+        free(map->cities[i]->neighbours);
+        free(map->cities[i]);
     }
-
-//    // Output the map
-//    for (int y = 0; y < height; y++) {
-//        for (int x = 0; x < width; x++) {
-//            printf("%c", *(map + y * width + x));
-//        }
-//        printf("\n");
-//    }
-//
-    // Output city names and their coordinates
-    for (int i = 0; i < citiesCount; i++) {
-        printf("%s (%d, %d)\n", citiesNames + i * maximalCityNameLength,
-               *(citiesCoordinates + i * COORDINATES_SIZE + X_COORDINATE),
-               *(citiesCoordinates + i * COORDINATES_SIZE + Y_COORDINATE));
-    }
-
-    free(map);
-    free(citiesCoordinates);
-    free(citiesNames);
-    free(cityMaps);
-
-    return 0;
+    free(map->cities);
 }
