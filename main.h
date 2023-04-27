@@ -12,21 +12,35 @@ typedef struct city {
     char *name;
     int x;
     int y;
-    struct city **neighbours;
+    struct neighbour **neighbours;
 } city;
+
+typedef struct neighbour {
+    city *city;
+    int distance;
+} neighbour;
 
 typedef struct map {
     int width;
     int height;
     int maximalCityNameLength;
     int citiesCount;
-    char *mapVisualisation;
+    char **mapVisualisation;
     city **cities;
 } map;
 
+typedef struct node {
+    struct node *next;
+    int x;
+    int y;
+} node;
+
 void initializeMap(map *map);
+
 void findCities(map *map);
+
 void findNames(map *map);
+
 void deallocateMemory(map *map);
 
 #endif //JAKDOJADE_MAIN_H
