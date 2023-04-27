@@ -5,6 +5,13 @@
 #define X_COORDINATE 0
 #define Y_COORDINATE 1
 
+typedef struct city {
+    char *name;
+    int x;
+    int y;
+    struct city **neighbours;
+} city;
+
 int main() {
     int width, height;
 
@@ -22,7 +29,7 @@ int main() {
     const int maximalCitiesCount = height * width;
     int *citiesCoordinates = (int *) calloc((maximalCitiesCount * COORDINATES_SIZE), sizeof(int));
 
-    // Input the data
+    // Input the map data
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             scanf(" %c", &input);
@@ -36,7 +43,9 @@ int main() {
         }
     }
 
-    const int maximalCityNameLength = width;
+    // We need to add citiesCount to the size of the array to account for the null terminator
+    const int maximalCityNameLength = width + citiesCount;
+
     char *citiesNames = (char *) calloc((citiesCount * maximalCityNameLength), sizeof(char));
 
     for (int i = 0; i < citiesCount; i++) {
@@ -92,12 +101,14 @@ int main() {
         *(citiesNames + i * maximalCityNameLength + j) = '\0';
     }
 
-    // Output city names
+    int **cityMaps = (int **) calloc((citiesCount * (height * width)), sizeof(int));
+
+
     for (int i = 0; i < citiesCount; i++) {
-        printf("%s\n", citiesNames + i * maximalCityNameLength);
+
     }
 
-//    // Output the data
+//    // Output the map
 //    for (int y = 0; y < height; y++) {
 //        for (int x = 0; x < width; x++) {
 //            printf("%c", *(map + y * width + x));
@@ -105,14 +116,17 @@ int main() {
 //        printf("\n");
 //    }
 //
-//    // Output the coordinates of the cities
-//    for (int i = 0; i < citiesCount; i++) {
-//        printf("(%d, %d)\n", *(citiesCoordinates + i * COORDINATES_SIZE + X_COORDINATE), *(citiesCoordinates + i * COORDINATES_SIZE + Y_COORDINATE));
-//    }
+    // Output city names and their coordinates
+    for (int i = 0; i < citiesCount; i++) {
+        printf("%s (%d, %d)\n", citiesNames + i * maximalCityNameLength,
+               *(citiesCoordinates + i * COORDINATES_SIZE + X_COORDINATE),
+               *(citiesCoordinates + i * COORDINATES_SIZE + Y_COORDINATE));
+    }
 
     free(map);
     free(citiesCoordinates);
     free(citiesNames);
+    free(cityMaps);
 
     return 0;
 }
