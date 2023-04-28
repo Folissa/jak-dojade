@@ -4,36 +4,29 @@ int main() {
 
     map map;
     graph graph;
+    hashTable table;
 
     initializeMapGraph(&map, &graph);
 
-    findCities(&map, &graph);
-    findNames(&map);
-
-    // Output cities
-    for (int i = 0; i < map.citiesCount; i++) {
-        printf("%s (%d, %d)\n", map.cities[i]->name, map.cities[i]->x, map.cities[i]->y);
-    }
+    findCities(&map, &graph, &table);
+    findNames(&map, &table);
 
     for (int i = 0; i < map.citiesCount; i++) {
         clear(map.cities[i], &map, &graph);
         bfs(map.cities[i], &map, &graph);
     }
 
-//    inputFlights(&map);
+    inputFlights(&map);
     fillAdjacencyList(&map, &graph);
-
     int x = 3;
-
-    deallocateMemory(&map, &graph);
+    deallocateMemory(&map, &graph, &table);
 
     return 0;
 }
 
 void initializeMapGraph(map *map, graph *graph) {
     // Input width and height
-    scanf(" %d", &map->width);
-    scanf(" %d", &map->height);
+    scanf("%d %d", &map->width, &map->height);
 
     // Create mapVisualisation
     map->mapVisualisation = (char **) calloc(map->height, sizeof(char *));
@@ -46,7 +39,7 @@ void initializeMapGraph(map *map, graph *graph) {
     }
 }
 
-void findCities(map *map, graph *graph) {
+void findCities(map *map, graph *graph, hashTable *table) {
     map->citiesCount = 0;
 
     // Create cities coordinates array
@@ -73,15 +66,22 @@ void findCities(map *map, graph *graph) {
     }
     map->cities = (city **) calloc(map->citiesCount, sizeof(city *));
     graph->adjacencyList = (struct neighbour **) calloc(map->citiesCount, sizeof(struct neighbour *));
+    // TODO: Change the size of the hash table
+    table->size = map->citiesCount * HASH_TABLE_MULTIPLIER;
+    table->cities = (cityNode **) calloc(table->size, sizeof(cityNode *));
+    map->maximalCityNameLength = map->width + map->citiesCount;
+
     for (int i = 0; i < map->citiesCount; i++) {
         map->cities[i] = (city *) malloc(sizeof(city));
         map->cities[i]->index = i;
-        map->cities[i]->name = (char *) calloc((map->maximalCityNameLength), sizeof(char));
+        map->cities[i]->name = (char *) malloc(map->maximalCityNameLength * sizeof(char));
+        memset(map->cities[i]->name, '\0', map->maximalCityNameLength);
         map->cities[i]->x = citiesCoordinates[i][X_COORDINATE];
         map->cities[i]->y = citiesCoordinates[i][Y_COORDINATE];
         map->cities[i]->neighboursCount = 0;
         map->cities[i]->neighbours = NULL;
         graph->adjacencyList[i] = NULL;
+        table->cities[i] = NULL;
     }
 
     for (int i = 0; i < maximalCitiesCount; i++) {
@@ -90,9 +90,8 @@ void findCities(map *map, graph *graph) {
     free(citiesCoordinates);
 }
 
-void findNames(map *map) {
+void findNames(map *map, hashTable *table) {
     // We need to add citiesCount for the null terminator
-    map->maximalCityNameLength = map->width + map->citiesCount;
 
     for (int i = 0; i < map->citiesCount; i++) {
         int x = (*(map->cities + i))->x;
@@ -111,7 +110,8 @@ void findNames(map *map) {
                 }
                 if (isAlphaNumeric(map, cityNameXTemporary, cityNameYTemporary)) {
                     // Move left until we find the first letter
-                    while (cityNameXTemporary - 1 >= 0 && isAlphaNumeric(map, cityNameXTemporary - 1, cityNameYTemporary)) {
+                    while (cityNameXTemporary - 1 >= 0 &&
+                           isAlphaNumeric(map, cityNameXTemporary - 1, cityNameYTemporary)) {
                         cityNameXTemporary--;
                     }
 
@@ -129,11 +129,12 @@ void findNames(map *map) {
         // Uncover city name
         int currentCharPosition = 0;
         while (cityNameX < map->width && isAlphaNumeric(map, cityNameX, cityNameY)) {
-            *(map->cities[i]->name + currentCharPosition) = map->mapVisualisation[cityNameY][cityNameX];
+            map->cities[i]->name[currentCharPosition] = map->mapVisualisation[cityNameY][cityNameX];
             currentCharPosition++;
             cityNameX++;
         }
-        *(map->cities[i]->name + currentCharPosition) = '\0';
+        map->cities[i]->name[currentCharPosition] = '\0';
+        insertCity(map->cities[i], table);
     }
 }
 
@@ -141,7 +142,7 @@ int isAlphaNumeric(map *map, int x, int y) {
     return ('A' <= map->mapVisualisation[y][x] && map->mapVisualisation[y][x] <= 'Z') ||
            ('a' <= map->mapVisualisation[y][x] && map->mapVisualisation[y][x] <= 'z') ||
            ('0' <= map->mapVisualisation[y][x] && map->mapVisualisation[y][x] <= '9');
-    }
+}
 
 void enqueue(int x, int y, queue *queue) {
     node *newNode = malloc(sizeof(node));
@@ -306,22 +307,93 @@ void fillAdjacencyList(map *map, graph *graph) {
 void inputFlights(map *map) {
     map->flightsCount = 0;
 
+    // TODO: Something weird going on here
+
     scanf(" %d", &map->flightsCount);
+
+    // Consume the newline character
+    getchar();
 
     char buffer[BUFFER_SIZE];
     int i = 0;
     while (i < map->flightsCount && fgets(buffer, BUFFER_SIZE, stdin)) {
+        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
         char *token = strtok(buffer, " ");
-        while (token != NULL) {
-            printf("%s",token);
-            token = strtok(NULL, " ");
-        }
+        // Source
+//        lookupCity(map, token);
+        printf("%s ", token);
+        token = strtok(NULL, " ");
+        // Destination
+        printf("%s ", token);
+        token = strtok(NULL, " ");
+        // Distance
+        printf("%s ", token);
+
         printf("\n");
         i++;
     }
 }
 
-void deallocateMemory(map *map, graph *graph) {
+int hash(const char *string) {
+    int key = 0, i = 0;
+    while (string[i] != '\0') {
+        key += string[i];
+        i++;
+    }
+    return key;
+}
+
+void insertCity(city *city, hashTable *table) {
+    unsigned long hashValue = hash(city->name) % table->size;
+    cityNode *node = table->cities[hashValue];
+
+    if (node == NULL) {
+        // Create a new node for the head of the list
+        node = (cityNode *) malloc(sizeof(cityNode));
+        node->city = city;
+        node->next = NULL;
+        table->cities[hashValue] = node;
+    } else {
+        while (node->next != NULL) {
+            node = node->next;
+        }
+
+        // Add the city to the end of the list
+        cityNode *newNode = (cityNode *) malloc(sizeof(cityNode));
+        newNode->city = city;
+        newNode->next = NULL;
+        node->next = newNode;
+    }
+}
+
+city *lookupCity(char *name, hashTable *table) {
+    unsigned long hashValue = hash(name) % table->size;
+    cityNode *node = table->cities[hashValue];
+
+    while (node != NULL) {
+        if (strcmp(node->city->name, name) == 0) {
+            // Found the city
+            return node->city;
+        }
+
+        node = node->next;
+    }
+
+    // City not found
+    return NULL;
+}
+
+void freeCities(cityNode *city) {
+    cityNode *currentCity = city;
+    while (currentCity != NULL) {
+        cityNode *nextCity = currentCity->next;
+        free(currentCity);
+        currentCity = nextCity;
+    }
+    city = NULL;
+}
+
+void deallocateMemory(map *map, graph *graph, hashTable *table) {
     for (int y = 0; y < map->height; y++) {
         free(map->mapVisualisation[y]);
         free(graph->visited[y]);
@@ -332,9 +404,11 @@ void deallocateMemory(map *map, graph *graph) {
     free(map->mapVisualisation);
     for (int i = 0; i < map->citiesCount; i++) {
         free(map->cities[i]->name);
+        freeCities(table->cities[i]);
         freeNeighbours(map->cities[i]);
         free(map->cities[i]);
     }
+    free(table->cities);
     free(graph->adjacencyList);
     free(map->cities);
 }
