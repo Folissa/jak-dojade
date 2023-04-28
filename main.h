@@ -92,7 +92,7 @@ void freeNeighbours(city *sourceCity);
 
 void fillAdjacencyList(map *map, graph *graph);
 
-void inputFlights(map *map);
+void inputFlights(map *map, graph *graph, hashTable *table);
 
 int hash(const char *string);
 

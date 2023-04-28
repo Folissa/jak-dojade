@@ -16,7 +16,7 @@ int main() {
         bfs(map.cities[i], &map, &graph);
     }
 
-    inputFlights(&map);
+    inputFlights(&map, &graph, &table);
     fillAdjacencyList(&map, &graph);
     int x = 3;
     deallocateMemory(&map, &graph, &table);
@@ -304,7 +304,7 @@ void fillAdjacencyList(map *map, graph *graph) {
     }
 }
 
-void inputFlights(map *map) {
+void inputFlights(map *map, graph *graph, hashTable *table) {
     map->flightsCount = 0;
 
     // TODO: Something weird going on here
@@ -318,19 +318,24 @@ void inputFlights(map *map) {
     int i = 0;
     while (i < map->flightsCount && fgets(buffer, BUFFER_SIZE, stdin)) {
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+        i++;
         char *token = strtok(buffer, " ");
         // Source
-//        lookupCity(map, token);
-        printf("%s ", token);
+        city *source = lookupCity(token, table);
         token = strtok(NULL, " ");
         // Destination
-        printf("%s ", token);
+        city *destination = lookupCity(token, table);
         token = strtok(NULL, " ");
         // Distance
-        printf("%s ", token);
-
-        printf("\n");
-        i++;
+        int distance = atoi(token);
+        neighbour *neighbour = findNeighbour(destination->x, destination->y, source);
+        if (neighbour != NULL && neighbour->distance <= distance) {
+            continue;
+        } else if (neighbour != NULL && neighbour->distance > distance) {
+            neighbour->distance = distance;
+            continue;
+        }
+        addNeighbour(source, destination, distance);
     }
 }
 
