@@ -227,6 +227,7 @@ void addNeighbour(city *sourceCity, city *neighbourCity, int distance) {
     sourceCity->neighboursCount++;
 }
 
+// TODO: Optimize this function
 neighbour *findNeighbour(int x, int y, city *city) {
     neighbour *current = city->neighbours;
     while (current != NULL) {
@@ -307,8 +308,6 @@ void fillAdjacencyList(map *map, graph *graph) {
 void inputFlights(map *map, graph *graph, hashTable *table) {
     map->flightsCount = 0;
 
-    // TODO: Something weird going on here
-
     scanf(" %d", &map->flightsCount);
 
     // Consume the newline character
@@ -353,7 +352,6 @@ void insertCity(city *city, hashTable *table) {
     cityNode *node = table->cities[hashValue];
 
     if (node == NULL) {
-        // Create a new node for the head of the list
         node = (cityNode *) malloc(sizeof(cityNode));
         node->city = city;
         node->next = NULL;
@@ -362,8 +360,6 @@ void insertCity(city *city, hashTable *table) {
         while (node->next != NULL) {
             node = node->next;
         }
-
-        // Add the city to the end of the list
         cityNode *newNode = (cityNode *) malloc(sizeof(cityNode));
         newNode->city = city;
         newNode->next = NULL;
@@ -377,14 +373,11 @@ city *lookupCity(char *name, hashTable *table) {
 
     while (node != NULL) {
         if (strcmp(node->city->name, name) == 0) {
-            // Found the city
             return node->city;
         }
 
         node = node->next;
     }
-
-    // City not found
     return NULL;
 }
 
@@ -409,9 +402,11 @@ void deallocateMemory(map *map, graph *graph, hashTable *table) {
     free(map->mapVisualisation);
     for (int i = 0; i < map->citiesCount; i++) {
         free(map->cities[i]->name);
-        freeCities(table->cities[i]);
         freeNeighbours(map->cities[i]);
         free(map->cities[i]);
+    }
+    for (int i = 0; i < table->size; i++) {
+        freeCities(table->cities[i]);
     }
     free(table->cities);
     free(graph->adjacencyList);
