@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define COORDINATES_SIZE 2
 #define NUMBER_OF_DIRECTIONS 4
@@ -16,12 +17,13 @@ typedef struct city {
     int x;
     int y;
     int neighboursCount;
-    struct neighbour **neighbours;
+    struct neighbour *neighbours;
 } city;
 
 typedef struct neighbour {
     city *city;
     int distance;
+    struct neighbour *next;
 } neighbour;
 
 typedef struct map {
@@ -37,7 +39,7 @@ typedef struct map {
 typedef struct graph {
     int **visited;
     int **distances;
-    int **adjacencyMatrix;
+    struct neighbour **adjacencyList;
 } graph;
 
 typedef struct node {
@@ -53,9 +55,11 @@ typedef struct queue {
 
 void initializeMapGraph(map *map, graph *graph);
 
-void findCities(map *map);
+void findCities(map *map, graph *graph);
 
 void findNames(map *map);
+
+int isAlphaNumeric(map *map, int x, int y);
 
 void enqueue(int x, int y, queue *queue);
 
@@ -65,17 +69,19 @@ int isEmpty(queue *queue);
 
 void bfs(city *sourceCity, map *map, graph *graph);
 
-void clear(map *map, graph *graph);
+void addNeighbour(city *sourceCity, city *neighbourCity, int distance);
+
+void clear(city *sourceCity, map *map, graph *graph);
 
 city *findCity(int x, int y, map *map);
 
 neighbour *findNeighbour(int x, int y, city *city);
 
+void freeNeighbours(city *sourceCity);
+
+void fillAdjacencyList(map *map, graph *graph);
+
 void inputFlights(map *map);
-
-void initializeAdjacencyMatrix(map *map, graph *graph);
-
-void fillAdjacencyMatrix(map *map, graph *graph);
 
 void deallocateMemory(map *map, graph *graph);
 
