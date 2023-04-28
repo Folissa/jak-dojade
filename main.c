@@ -3,8 +3,9 @@
 int main() {
 
     map map;
+    graph graph;
 
-    initializeMap(&map);
+    initializeMapGraph(&map, &graph);
 
     findCities(&map);
     findNames(&map);
@@ -15,31 +16,41 @@ int main() {
     }
 
     for (int i = 0; i < map.citiesCount; i++) {
-        clear(&map);
-        bfs(map.cities[i], &map);
+        clear(&map, &graph);
+        bfs(map.cities[i], &map, &graph);
     }
+
+//    inputFlights(&map);
+
+    initializeAdjacencyMatrix(&map, &graph);
+    fillAdjacencyMatrix(&map, &graph);
+    for (int i = 0; i < map.citiesCount; i ++) {
+        for (int j = 0; j < map.citiesCount; j ++) {
+            printf("%d ", graph.adjacencyMatrix[i][j]);
+        }
+        printf("\n");
+    }
+
     int x = 3;
-    deallocateMemory(&map);
+
+    deallocateMemory(&map, &graph);
 
     return 0;
 }
 
-void initializeMap(map *map) {
+void initializeMapGraph(map *map, graph *graph) {
     // Input width and height
     scanf(" %d", &map->width);
     scanf(" %d", &map->height);
 
-    // We need to add citiesCount for the null terminator
-    map->maximalCityNameLength = map->width + map->citiesCount;
-
     // Create mapVisualisation
     map->mapVisualisation = (char **) calloc(map->height, sizeof(char *));
-    map->visited = (int **) calloc(map->height, sizeof(int *));
-    map->distances = (int **) calloc(map->height, sizeof(int *));
+    graph->visited = (int **) calloc(map->height, sizeof(int *));
+    graph->distances = (int **) calloc(map->height, sizeof(int *));
     for (int y = 0; y < map->height; y++) {
         map->mapVisualisation[y] = (char *) calloc(map->width, sizeof(char));
-        map->visited[y] = (int *) calloc(map->width, sizeof(int));
-        map->distances[y] = (int *) calloc(map->width, sizeof(int));
+        graph->visited[y] = (int *) calloc(map->width, sizeof(int));
+        graph->distances[y] = (int *) calloc(map->width, sizeof(int));
     }
 }
 
@@ -71,6 +82,7 @@ void findCities(map *map) {
     map->cities = (city **) calloc(map->citiesCount, sizeof(city *));
     for (int i = 0; i < map->citiesCount; i++) {
         map->cities[i] = (city *) malloc(sizeof(city));
+        map->cities[i]->index = i;
         map->cities[i]->name = (char *) calloc((map->maximalCityNameLength), sizeof(char));
         map->cities[i]->x = citiesCoordinates[i][X_COORDINATE];
         map->cities[i]->y = citiesCoordinates[i][Y_COORDINATE];
@@ -86,6 +98,9 @@ void findCities(map *map) {
 }
 
 void findNames(map *map) {
+    // We need to add citiesCount for the null terminator
+    map->maximalCityNameLength = map->width + map->citiesCount;
+
     for (int i = 0; i < map->citiesCount; i++) {
         int x = (*(map->cities + i))->x;
         int y = (*(map->cities + i))->y;
@@ -176,7 +191,7 @@ int isEmpty(queue *queue) {
     return queue->head == NULL;
 }
 
-void bfs(city *sourceCity, map *map) {
+void bfs(city *sourceCity, map *map, graph *graph) {
     queue queue;
     queue.head = NULL, queue.tail = NULL;
 
@@ -185,8 +200,8 @@ void bfs(city *sourceCity, map *map) {
     int directionY[] = {-1, 0, 1, 0};
 
     enqueue(sourceCity->x, sourceCity->y, &queue);
-    map->visited[sourceCity->y][sourceCity->x] = 1;
-    map->distances[sourceCity->y][sourceCity->x] = 0;
+    graph->visited[sourceCity->y][sourceCity->x] = 1;
+    graph->distances[sourceCity->y][sourceCity->x] = 0;
 
     while (!isEmpty(&queue)) {
         int currentX = queue.head->x;
@@ -198,38 +213,38 @@ void bfs(city *sourceCity, map *map) {
             if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
                 continue;
             }
-            if (map->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+            if (graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
                 // TODO: Check if this works
                 // TODO: If we find the same neighbour again check if the distance is smaller
                 neighbour *temporary = findNeighbour(newX, newY, sourceCity);
-                if (temporary != NULL && map->distances[currentY][currentX] + 1 < temporary->distance) {
-                    temporary->distance = map->distances[currentY][currentX] + 1;
+                if (temporary != NULL && graph->distances[currentY][currentX] + 1 < temporary->distance) {
+                    temporary->distance = graph->distances[currentY][currentX] + 1;
                     continue;
                 }
             }
-            if (!map->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+            if (!graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
                 sourceCity->neighbours[sourceCity->neighboursCount] = (neighbour *) malloc(sizeof(neighbour));
                 sourceCity->neighbours[sourceCity->neighboursCount]->city = findCity(newX, newY, map);
-                sourceCity->neighbours[sourceCity->neighboursCount]->distance = map->distances[currentY][currentX] + 1;
+                sourceCity->neighbours[sourceCity->neighboursCount]->distance = graph->distances[currentY][currentX] + 1;
                 sourceCity->neighboursCount++;
-                map->visited[newY][newX] = 1;
+                graph->visited[newY][newX] = 1;
                 continue;
             }
-            if (map->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
+            if (graph->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
                 continue;
             }
-            map->visited[newY][newX] = 1;
-            map->distances[newY][newX] = map->distances[currentY][currentX] + 1;
+            graph->visited[newY][newX] = 1;
+            graph->distances[newY][newX] = graph->distances[currentY][currentX] + 1;
             enqueue(newX, newY, &queue);
         }
     }
 }
 
-void clear(map *map) {
+void clear(map *map, graph *graph) {
     for (int y = 0; y < map->height; y++) {
         for (int x = 0; x < map->width; x++) {
-            map->visited[y][x] = 0;
-            map->distances[y][x] = -1;
+            graph->visited[y][x] = 0;
+            graph->distances[y][x] = -1;
         }
     }
 }
@@ -253,23 +268,54 @@ neighbour *findNeighbour(int x, int y, city *city) {
     return NULL;
 }
 
+void inputFlights(map *map) {
+    map->flightsCount = 0;
 
-void deallocateMemory(map *map) {
+    scanf(" %d", &map->flightsCount);
+
+    char buffer[BUFFER_SIZE];
+    int i = 0;
+    while (i < map->flightsCount && fgets(buffer, BUFFER_SIZE, stdin)) {
+        i++;
+    }
+}
+
+void initializeAdjacencyMatrix(map *map, graph *graph) {
+    graph->adjacencyMatrix = (int **) calloc(map->citiesCount, sizeof(int *));
+    for (int y = 0; y < map->citiesCount; y++) {
+        graph->adjacencyMatrix[y] = (int *) calloc(map->citiesCount, sizeof(int));
+        for (int x = 0; x < map->citiesCount; x++) {
+            graph->adjacencyMatrix[y][x] = 0;
+        }
+    }
+}
+
+void fillAdjacencyMatrix(map *map, graph *graph) {
+    for (int i = 0; i < map->citiesCount; i++) {
+        for (int j = 0; j < map->cities[i]->neighboursCount; j++) {
+               graph->adjacencyMatrix[map->cities[i]->index][map->cities[i]->neighbours[j]->city->index] = map->cities[i]->neighbours[j]->distance;
+        }
+    }
+}
+
+void deallocateMemory(map *map, graph *graph) {
     for (int y = 0; y < map->height; y++) {
         free(map->mapVisualisation[y]);
-        free(map->visited[y]);
-        free(map->distances[y]);
+        free(graph->visited[y]);
+        free(graph->distances[y]);
     }
-    free(map->visited);
-    free(map->distances);
+    free(graph->visited);
+    free(graph->distances);
     free(map->mapVisualisation);
     for (int i = 0; i < map->citiesCount; i++) {
         free(map->cities[i]->name);
+        free(graph->adjacencyMatrix[i]);
         for (int j = 0; j < map->cities[i]->neighboursCount; j++) {
             free(map->cities[i]->neighbours[j]);
         }
         free(map->cities[i]->neighbours);
         free(map->cities[i]);
     }
+    free(graph->adjacencyMatrix);
     free(map->cities);
 }
