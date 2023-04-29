@@ -54,15 +54,21 @@ typedef struct graph {
 } graph;
 
 typedef struct node {
-    struct node *next;
+    struct queueNode *next;
     int x;
     int y;
-} node;
+} queueNode;
 
 typedef struct queue {
-    node *head;
-    node *tail;
+    queueNode *head;
+    queueNode *tail;
 } queue;
+
+typedef struct priorityQueue {
+    neighbour **neighbourQueue;
+    int size;
+    int maxSize;
+} priorityQueue;
 
 void initializeMapGraph(map *map, graph *graph);
 
@@ -92,13 +98,24 @@ void freeNeighbours(city *sourceCity);
 
 void fillAdjacencyList(map *map, graph *graph);
 
-void inputFlights(map *map, graph *graph, hashTable *table);
+void inputFlights(map *map, hashTable *table);
 
 int hash(const char *string);
 
 void insertCity(city *city, hashTable *table);
 
 city *lookupCity(char *name, hashTable *table);
+
+void freeCities(cityNode *city);
+
+int parent(int index);
+
+int left(int index);
+
+int right(int index);
+
+void heapify(int index, priorityQueue *queue);
+
 
 void deallocateMemory(map *map, graph *graph, hashTable *table);
 

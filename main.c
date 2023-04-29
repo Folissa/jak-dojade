@@ -16,7 +16,7 @@ int main() {
         bfs(map.cities[i], &map, &graph);
     }
 
-    inputFlights(&map, &graph, &table);
+    inputFlights(&map, &table);
     fillAdjacencyList(&map, &graph);
     int x = 3;
     deallocateMemory(&map, &graph, &table);
@@ -145,7 +145,7 @@ int isAlphaNumeric(map *map, int x, int y) {
 }
 
 void enqueue(int x, int y, queue *queue) {
-    node *newNode = malloc(sizeof(node));
+    queueNode *newNode = malloc(sizeof(queueNode));
     newNode->next = NULL;
     newNode->x = x;
     newNode->y = y;
@@ -161,7 +161,7 @@ void dequeue(queue *queue) {
     if (queue->head == NULL) {
         return;
     }
-    node *temporary = queue->head;
+    queueNode *temporary = queue->head;
     queue->head = queue->head->next;
     if (queue->head == NULL) {
         queue->tail = NULL;
@@ -305,7 +305,7 @@ void fillAdjacencyList(map *map, graph *graph) {
     }
 }
 
-void inputFlights(map *map, graph *graph, hashTable *table) {
+void inputFlights(map *map, hashTable *table) {
     map->flightsCount = 0;
 
     scanf(" %d", &map->flightsCount);
@@ -389,6 +389,65 @@ void freeCities(cityNode *city) {
         currentCity = nextCity;
     }
     city = NULL;
+}
+
+int parent(int index) {
+    return index / 2;
+}
+
+int left(int index) {
+    return index * 2;
+}
+
+int right(int index) {
+    return index * 2 + 1;
+}
+
+void heapify(int index, priorityQueue *queue) {
+    int leftIndex = left(index);
+    int rightIndex = right(index);
+    int smallestIndex = 0;
+    if (leftIndex <= queue->size && queue->neighbourQueue[leftIndex - 1]->distance < queue->neighbourQueue[index - 1]->distance) {
+        smallestIndex = leftIndex;
+    }
+    else {
+        smallestIndex = index;
+    }
+    if (rightIndex <= queue->size && queue->neighbourQueue[rightIndex - 1]->distance < queue->neighbourQueue[smallestIndex - 1]->distance) {
+        smallestIndex = rightIndex;
+    }
+    if (smallestIndex != index) {
+        neighbour *temporary = queue->neighbourQueue[index - 1];
+        queue->neighbourQueue[index - 1] = queue->neighbourQueue[smallestIndex - 1];
+        queue->neighbourQueue[smallestIndex - 1] = temporary;
+        heapify(smallestIndex, queue);
+    }
+}
+
+void heapInsert(neighbour *insertedNeighbour, priorityQueue *queue) {
+    if (queue->size >= queue->maxSize)
+        return;
+    else
+        queue->size = queue->size + 1;
+    int index = queue->size;
+    while (index > 1 && queue->neighbourQueue[parent(index) - 1]->distance > insertedNeighbour->distance) {
+        queue->neighbourQueue[index - 1] = queue->neighbourQueue[parent(index) - 1];
+        index = parent(index);
+    }
+    queue->neighbourQueue[index - 1] = insertedNeighbour;
+}
+
+neighbour *heapGetMin(priorityQueue *queue) {
+    if (queue->size < 1)
+        return NULL;
+    else {
+        neighbour *minimum = queue->neighbourQueue[0];
+        queue->neighbourQueue[0] = queue->neighbourQueue[queue->size - 1];
+        queue->size = queue->size - 1;
+        // Heapify from the root
+        heapify(0, queue);
+        return minimum;
+    }
 }
 
 void deallocateMemory(map *map, graph *graph, hashTable *table) {
