@@ -10,11 +10,13 @@ int main() {
 
     findCities(&map, &graph, &table);
     findNames(&map, &table);
+
+    inputFlights(&map, &table);
+
     for (int i = 0; i < map.citiesCount; i++) {
         bfs(map.cities[i], &map, &graph);
         clear(map.cities[i], &map, &graph);
     }
-    inputFlights(&map, &table);
 
 //    for (int i = 0; i < map.citiesCount; i++) {
 //        dijkstra(map.cities[i], &map, &graph);
@@ -205,17 +207,17 @@ void bfs(city *sourceCity, map *map, graph *graph) {
             if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
                 continue;
             }
-            if (graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+            if (map->mapVisualisation[newY][newX] == '*') {
                 neighbour *temporary = findNeighbour(newX, newY, sourceCity);
                 if (temporary != NULL && graph->distances[currentY][currentX] + 1 < temporary->distance) {
                     temporary->distance = graph->distances[currentY][currentX] + 1;
+                    graph->visited[newY][newX] = 1;
+                    continue;
+                } else if (temporary == NULL) {
+                    addNeighbour(sourceCity, findCity(newX, newY, map), graph->distances[currentY][currentX] + 1);
+                    graph->visited[newY][newX] = 1;
                     continue;
                 }
-            }
-            if (!graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
-                addNeighbour(sourceCity, findCity(newX, newY, map), graph->distances[currentY][currentX] + 1);
-                graph->visited[newY][newX] = 1;
-                continue;
             }
             if (graph->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
                 continue;
@@ -223,6 +225,14 @@ void bfs(city *sourceCity, map *map, graph *graph) {
             graph->visited[newY][newX] = 1;
             graph->distances[newY][newX] = graph->distances[currentY][currentX] + 1;
             enqueue(newX, newY, &queue);
+
+//            neighbour *neighbour = findNeighbour(destination->x, destination->y, source);
+//            if (neighbour != NULL && neighbour->distance <= distance) {
+//                continue;
+//            } else if (neighbour != NULL && neighbour->distance > distance) {
+//                neighbour->distance = distance;
+//                continue;
+//            }
         }
     }
 }
@@ -304,10 +314,10 @@ city *findCity(int x, int y, map *map) {
 void inputFlights(map *map, hashTable *table) {
     map->flightsCount = 0;
 
-    scanf(" %d", &map->flightsCount);
+    scanf("%d ", &map->flightsCount);
 
     // Consume the newline character
-    getchar();
+//    getchar();
 
     char buffer[BUFFER_SIZE];
     int i = 0;
@@ -320,16 +330,9 @@ void inputFlights(map *map, hashTable *table) {
         token = strtok(NULL, " ");
         // Destination
         city *destination = lookupCity(token, table);
-        token = strtok(NULL, " ");
+        token = strtok(NULL, "\n");
         // Distance
         int distance = atoi(token);
-        neighbour *neighbour = findNeighbour(destination->x, destination->y, source);
-        if (neighbour != NULL && neighbour->distance <= distance) {
-            continue;
-        } else if (neighbour != NULL && neighbour->distance > distance) {
-            neighbour->distance = distance;
-            continue;
-        }
         addNeighbour(source, destination, distance);
     }
 }
@@ -337,10 +340,10 @@ void inputFlights(map *map, hashTable *table) {
 void inputQueries(map *map, graph *graph, hashTable *table) {
     map->queriesCount = 0;
 
-    scanf(" %d", &map->queriesCount);
+    scanf("%d ", &map->queriesCount);
 
-    // Consume the newline character
-    getchar();
+//    // Consume the newline character
+//    getchar();
 
     char buffer[BUFFER_SIZE];
     int i = 0;
@@ -353,7 +356,7 @@ void inputQueries(map *map, graph *graph, hashTable *table) {
         token = strtok(NULL, " ");
         // Destination
         city *destination = lookupCity(token, table);
-        token = strtok(NULL, " ");
+        token = strtok(NULL, " \n");
         // Type
         dijkstra(source, map, graph);
         int type = atoi(token);
@@ -401,6 +404,7 @@ void printPath(int stopper, city **previous, city *source, city *destination) {
 
 int hash(const char *string) {
     int key = 0, i = 0;
+
     while (string[i] != '\0') {
         key += string[i];
         i++;
