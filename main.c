@@ -11,8 +11,8 @@ int main() {
     findCities(&map, &graph, &table);
     findNames(&map, &table);
     for (int i = 0; i < map.citiesCount; i++) {
-        clear(map.cities[i], &map, &graph);
         bfs(map.cities[i], &map, &graph);
+        clear(map.cities[i], &map, &graph);
     }
     inputFlights(&map, &table);
 
@@ -77,8 +77,7 @@ void findCities(map *map, graph *graph, hashTable *table) {
 //    graph->results = (result *) calloc(map->citiesCount, sizeof(result));
     table->size = map->citiesCount * HASH_TABLE_MULTIPLIER;
     table->cities = (cityNode **) calloc(table->size, sizeof(cityNode *));
-    // TODO: Chanhe this
-    map->maximalCityNameLength = 60;
+    map->maximalCityNameLength = MAXIMUM_CITY_NAME_LENGTH;
 
     for (int i = 0; i < map->citiesCount; i++) {
         map->cities[i] = (city *) malloc(sizeof(city));
@@ -260,50 +259,37 @@ void freeNeighbours(city *sourceCity) {
     sourceCity->neighboursCount = 0;
 }
 
-// TODO: Optimize this function
 void clear(city *sourceCity, map *map, graph *graph) {
-    for (int i = 0; i < map->height; i++) {
-        for (int j = 0; j < map->width; j++) {
-            graph->visited[i][j] = 0;
-            graph->distances[i][j] = 0;
+    queue queue;
+    queue.head = NULL, queue.tail = NULL;
+
+    // Directions: up, right, down, left
+    int directionX[] = {0, 1, 0, -1};
+    int directionY[] = {-1, 0, 1, 0};
+
+    enqueue(sourceCity->x, sourceCity->y, &queue);
+
+    graph->visited[sourceCity->y][sourceCity->x] = 0;
+    graph->distances[sourceCity->y][sourceCity->x] = 0;
+
+    while (!isQueueEmpty(&queue)) {
+        int currentX = queue.head->x;
+        int currentY = queue.head->y;
+        dequeue(&queue);
+        for (int i = 0; i < NUMBER_OF_DIRECTIONS; i++) {
+            int newX = currentX + directionX[i];
+            int newY = currentY + directionY[i];
+            if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
+                continue;
+            }
+            if (graph->visited[newY][newX]) {
+                graph->visited[newY][newX] = 0;
+                graph->distances[newY][newX] = 0;
+                enqueue(newX, newY, &queue);
+            }
         }
     }
 }
-//    queue queue;
-//    queue.head = NULL, queue.tail = NULL;
-//
-//    // Directions: up, right, down, left
-//    int directionX[] = {0, 1, 0, -1};
-//    int directionY[] = {-1, 0, 1, 0};
-//
-//    enqueue(sourceCity->x, sourceCity->y, &queue);
-//
-//    graph->visited[sourceCity->y][sourceCity->x] = 0;
-//    graph->distances[sourceCity->y][sourceCity->x] = 0;
-//
-//    while (!isQueueEmpty(&queue)) {
-//        int currentX = queue.head->x;
-//        int currentY = queue.head->y;
-//        dequeue(&queue);
-//        for (int i = 0; i < NUMBER_OF_DIRECTIONS; i++) {
-//            int newX = currentX + directionX[i];
-//            int newY = currentY + directionY[i];
-//            if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
-//                continue;
-//            }
-//            if (graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
-//                graph->visited[newY][newX] = 0;
-//                continue;
-//            }
-//            if (!graph->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
-//                continue;
-//            }
-//            graph->visited[newY][newX] = 0;
-//            graph->distances[newY][newX] = 0;
-//            enqueue(newX, newY, &queue);
-//        }
-//    }
-//}
 
 // TODO: Optimize this function
 city *findCity(int x, int y, map *map) {

@@ -11,6 +11,7 @@
 #define BUFFER_SIZE 64
 #define X_COORDINATE 0
 #define Y_COORDINATE 1
+#define MAXIMUM_CITY_NAME_LENGTH 32
 #define INFINITY 2000000000
 
 typedef struct city {
