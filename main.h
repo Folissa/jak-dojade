@@ -53,15 +53,9 @@ typedef struct map {
 typedef struct graph {
     int **visited;
     int **distances;
-    struct result *results;
     int *totalDistance;
     city **previous;
 } graph;
-
-typedef struct result {
-    int *totalDistance;
-    city **previous;
-} result;
 
 typedef struct queueNode {
     struct queueNode *next;
@@ -82,7 +76,6 @@ typedef struct priorityQueueNode {
 
 typedef struct priorityQueue {
     priorityQueueNode **queue;
-    int reachedSize;
     int size;
     int maxSize;
 } priorityQueue;
@@ -117,8 +110,7 @@ void inputFlights(map *map, hashTable *table);
 
 void inputQueries(map *map, graph *graph, hashTable *table);
 
-//void printPath(int stopper, result *result, city *source, city *destination);
-void printPath(int stopper, city **visited, city *source, city *destination);
+void printPath(int stopper, city **previous, city *source, city *destination);
 
 int hash(const char *string);
 
