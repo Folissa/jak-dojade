@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 
 #define COORDINATES_SIZE 2
 #define HASH_TABLE_MULTIPLIER 2
@@ -25,7 +24,6 @@ typedef struct city {
 
 typedef struct neighbour {
     city *city;
-    int visited;
     int distance;
     struct neighbour *next;
 } neighbour;
@@ -45,6 +43,7 @@ typedef struct map {
     int height;
     int citiesCount;
     int flightsCount;
+    int queriesCount;
     char **mapVisualisation;
     int maximalCityNameLength;
     city **cities;
@@ -53,9 +52,15 @@ typedef struct map {
 typedef struct graph {
     int **visited;
     int **distances;
+    struct result *results;
     int *totalDistance;
     city **previous;
 } graph;
+
+typedef struct result {
+    int *totalDistance;
+    city **previous;
+} result;
 
 typedef struct queueNode {
     struct queueNode *next;
@@ -109,6 +114,10 @@ void freeNeighbours(city *sourceCity);
 
 void inputFlights(map *map, hashTable *table);
 
+void inputQueries(map *map, graph *graph, hashTable *table);
+
+void printPath(int stopper, result *result, city *source, city *destination);
+
 int hash(const char *string);
 
 void insertCity(city *city, hashTable *table);
@@ -127,17 +136,17 @@ void heapify(int index, priorityQueue *queue);
 
 city *heapGetMin(priorityQueue *queue);
 
-void initializePriorityQueue(priorityQueue *queue, map *map, graph *graph);
+void initializePriorityQueue(priorityQueue *queue, map *map);
 
 int isPriorityQueueEmpty(priorityQueue *queue);
 
-void addWithPriority(city *city, int priority, graph *graph, priorityQueue *queue);
+void addWithPriority(city *city, int priority, priorityQueue *queue);
 
-void decreasePriority(city *city, int priority, graph *graph, priorityQueue *queue);
+void decreasePriority(city *city, int priority, priorityQueue *queue);
 
 int contains(city *city, priorityQueue *queue);
 
-void heapInsert(city *city, int priority, graph *graph, priorityQueue *queue);
+void heapInsert(city *city, int priority, priorityQueue *queue);
 
 void freePriorityQueue(priorityQueue *queue);
 

@@ -14,18 +14,18 @@ int main() {
     for (int i = 0; i < map.citiesCount; i++) {
         clear(map.cities[i], &map, &graph);
         bfs(map.cities[i], &map, &graph);
-//        if (i == map.citiesCount - 1)
-//            // Clear the arrays one more time
-//            clear(map.cities[i], &map, &graph);
     }
     inputFlights(&map, &table);
 
-    int a = 3;
+    for (int i = 0; i < map.citiesCount; i++) {
+        dijkstra(map.cities[i], &map, &graph);
+        for (int j = 0; j < map.citiesCount; j++) {
+            graph.results[i].totalDistance[j] = graph.totalDistance[j];
+            graph.results[i].previous[j] = graph.previous[j];
+        }
+    }
 
-
-    dijkstra(map.cities[0], &map, &graph);
-
-    int x = 3;
+    inputQueries(&map, &graph, &table);
 
     deallocateMemory(&map, &graph, &table);
 
@@ -75,6 +75,7 @@ void findCities(map *map, graph *graph, hashTable *table) {
     map->cities = (city **) calloc(map->citiesCount, sizeof(city *));
     graph->totalDistance = (int *) calloc(map->citiesCount, sizeof(int));
     graph->previous = (city **) calloc(map->citiesCount, sizeof(city *));
+    graph->results = (result *) calloc(map->citiesCount, sizeof(result));
     table->size = map->citiesCount * HASH_TABLE_MULTIPLIER;
     table->cities = (cityNode **) calloc(table->size, sizeof(cityNode *));
     map->maximalCityNameLength = map->width + map->citiesCount;
@@ -89,6 +90,8 @@ void findCities(map *map, graph *graph, hashTable *table) {
         map->cities[i]->neighboursCount = 0;
         map->cities[i]->neighbours = NULL;
         table->cities[i] = NULL;
+        graph->results[i].totalDistance = (int *) calloc(map->citiesCount, sizeof(int));
+        graph->results[i].previous = (city **) calloc(map->citiesCount, sizeof(city *));
     }
 
     for (int i = 0; i < maximalCitiesCount; i++) {
@@ -229,7 +232,6 @@ void addNeighbour(city *sourceCity, city *neighbourCity, int distance) {
     neighbour *newNeighbour = malloc(sizeof(neighbour));
     newNeighbour->city = neighbourCity;
     newNeighbour->distance = distance;
-    newNeighbour->visited = 0;
     newNeighbour->next = sourceCity->neighbours;
     sourceCity->neighbours = newNeighbour;
     sourceCity->neighboursCount++;
@@ -338,6 +340,51 @@ void inputFlights(map *map, hashTable *table) {
     }
 }
 
+void inputQueries(map *map, graph *graph, hashTable *table) {
+    map->queriesCount = 0;
+
+    scanf(" %d", &map->queriesCount);
+
+    // Consume the newline character
+    getchar();
+
+    char buffer[BUFFER_SIZE];
+    int i = 0;
+    while (i < map->queriesCount && fgets(buffer, BUFFER_SIZE, stdin)) {
+        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+        i++;
+        char *token = strtok(buffer, " ");
+        // Source
+        city *source = lookupCity(token, table);
+        token = strtok(NULL, " ");
+        // Destination
+        city *destination = lookupCity(token, table);
+        token = strtok(NULL, " ");
+        // Type
+        int type = atoi(token);
+        if (type == 0) {
+            int distance = graph->results[source->index].totalDistance[destination->index];
+            printf("%d\n", distance);
+        } else if (type == 1) {
+            int distance = graph->results[source->index].totalDistance[destination->index];
+            printf("%d ", distance);
+            // Print out the path
+            printPath(0, &graph->results[source->index], source, destination);
+            printf("\n");
+        }
+    }
+}
+
+void printPath(int stopper, result *result, city *source, city *destination) {
+    stopper++;
+    if (destination->index == source->index) {
+        return;
+    }
+    printPath(stopper, result, source, result->previous[destination->index]);
+    if (stopper != 1)
+        printf("%s ", destination->name);
+}
+
 int hash(const char *string) {
     int key = 0, i = 0;
     while (string[i] != '\0') {
@@ -424,7 +471,6 @@ void heapify(int index, priorityQueue *queue) {
     }
 }
 
-
 city *heapGetMin(priorityQueue *queue) {
     if (queue->size < 1)
         return NULL;
@@ -439,7 +485,7 @@ city *heapGetMin(priorityQueue *queue) {
     }
 }
 
-void initializePriorityQueue(priorityQueue *queue, map *map, graph *graph) {
+void initializePriorityQueue(priorityQueue *queue, map *map) {
     queue->size = 0;
     queue->reachedSize = 0;
     queue->maxSize = map->citiesCount;
@@ -450,7 +496,7 @@ int isPriorityQueueEmpty(priorityQueue *queue) {
     return queue->size ==  0;
 }
 
-void addWithPriority(city *city, int priority, graph *graph, priorityQueue *queue) {
+void addWithPriority(city *city, int priority, priorityQueue *queue) {
     if (queue->size >= queue->maxSize) {
         return;
     }
@@ -469,7 +515,7 @@ void addWithPriority(city *city, int priority, graph *graph, priorityQueue *queu
     queue->queue[index - 1] = node;
 }
 
-void decreasePriority(city *city, int priority, graph *graph, priorityQueue *queue) {
+void decreasePriority(city *city, int priority, priorityQueue *queue) {
     for (int i = 0; i < queue->size; i++) {
         if (queue->queue[i]->city == city) {
             if (priority < queue->queue[i]->priority) {
@@ -489,11 +535,11 @@ int contains(city *city, priorityQueue *queue) {
     return 0;
 }
 
-void heapInsert(city *city, int priority, graph *graph, priorityQueue *queue) {
+void heapInsert(city *city, int priority, priorityQueue *queue) {
     if (contains(city, queue)) {
-        decreasePriority(city, priority, graph, queue);
+        decreasePriority(city, priority, queue);
     } else {
-        addWithPriority(city, priority, graph, queue);
+        addWithPriority(city, priority, queue);
     }
 }
 
@@ -508,7 +554,7 @@ void freePriorityQueue(priorityQueue *queue) {
 
 void dijkstra(city *source, map *map, graph *graph) {
     priorityQueue queue;
-    initializePriorityQueue(&queue, map, graph);
+    initializePriorityQueue(&queue, map);
 
     graph->totalDistance[source->index] = 0;
 
@@ -517,7 +563,7 @@ void dijkstra(city *source, map *map, graph *graph) {
             graph->totalDistance[i] = INFINITY;
             graph->previous[i] = NULL;
         }
-        heapInsert(map->cities[i], graph->totalDistance[i], graph, &queue);
+        heapInsert(map->cities[i], graph->totalDistance[i], &queue);
     }
 
     while (!isPriorityQueueEmpty(&queue)) {
@@ -531,7 +577,7 @@ void dijkstra(city *source, map *map, graph *graph) {
             if (temporaryDistance < graph->totalDistance[currentNeighbor->city->index]) {
                 graph->totalDistance[currentNeighbor->city->index] = temporaryDistance;
                 graph->previous[currentNeighbor->city->index] = minimum;
-                heapInsert(currentNeighbor->city, temporaryDistance, graph, &queue);
+                heapInsert(currentNeighbor->city, temporaryDistance, &queue);
             }
 
             currentNeighbor = currentNeighbor->next;
@@ -554,12 +600,15 @@ void deallocateMemory(map *map, graph *graph, hashTable *table) {
         free(map->cities[i]->name);
         freeNeighbours(map->cities[i]);
         free(map->cities[i]);
+        free(graph->results[i].totalDistance);
+        free(graph->results[i].previous);
     }
     for (int i = 0; i < table->size; i++) {
         freeCities(table->cities[i]);
     }
     free(table->cities);
     free(graph->previous);
+    free(graph->results);
     free(graph->totalDistance);
     free(map->cities);
 }
