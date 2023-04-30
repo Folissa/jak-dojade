@@ -260,42 +260,50 @@ void freeNeighbours(city *sourceCity) {
     sourceCity->neighboursCount = 0;
 }
 
+// TODO: Optimize this function
 void clear(city *sourceCity, map *map, graph *graph) {
-    queue queue;
-    queue.head = NULL, queue.tail = NULL;
-
-    // Directions: up, right, down, left
-    int directionX[] = {0, 1, 0, -1};
-    int directionY[] = {-1, 0, 1, 0};
-
-    enqueue(sourceCity->x, sourceCity->y, &queue);
-
-    graph->visited[sourceCity->y][sourceCity->x] = 0;
-    graph->distances[sourceCity->y][sourceCity->x] = 0;
-
-    while (!isQueueEmpty(&queue)) {
-        int currentX = queue.head->x;
-        int currentY = queue.head->y;
-        dequeue(&queue);
-        for (int i = 0; i < NUMBER_OF_DIRECTIONS; i++) {
-            int newX = currentX + directionX[i];
-            int newY = currentY + directionY[i];
-            if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
-                continue;
-            }
-            if (graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
-                graph->visited[newY][newX] = 0;
-                continue;
-            }
-            if (!graph->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
-                continue;
-            }
-            graph->visited[newY][newX] = 0;
-            graph->distances[newY][newX] = 0;
-            enqueue(newX, newY, &queue);
+    for (int i = 0; i < map->height; i++) {
+        for (int j = 0; j < map->width; j++) {
+            graph->visited[i][j] = 0;
+            graph->distances[i][j] = 0;
         }
     }
 }
+//    queue queue;
+//    queue.head = NULL, queue.tail = NULL;
+//
+//    // Directions: up, right, down, left
+//    int directionX[] = {0, 1, 0, -1};
+//    int directionY[] = {-1, 0, 1, 0};
+//
+//    enqueue(sourceCity->x, sourceCity->y, &queue);
+//
+//    graph->visited[sourceCity->y][sourceCity->x] = 0;
+//    graph->distances[sourceCity->y][sourceCity->x] = 0;
+//
+//    while (!isQueueEmpty(&queue)) {
+//        int currentX = queue.head->x;
+//        int currentY = queue.head->y;
+//        dequeue(&queue);
+//        for (int i = 0; i < NUMBER_OF_DIRECTIONS; i++) {
+//            int newX = currentX + directionX[i];
+//            int newY = currentY + directionY[i];
+//            if (newX < 0 || newX >= map->width || newY < 0 || newY >= map->height) {
+//                continue;
+//            }
+//            if (graph->visited[newY][newX] && map->mapVisualisation[newY][newX] == '*') {
+//                graph->visited[newY][newX] = 0;
+//                continue;
+//            }
+//            if (!graph->visited[newY][newX] || map->mapVisualisation[newY][newX] != '#') {
+//                continue;
+//            }
+//            graph->visited[newY][newX] = 0;
+//            graph->distances[newY][newX] = 0;
+//            enqueue(newX, newY, &queue);
+//        }
+//    }
+//}
 
 // TODO: Optimize this function
 city *findCity(int x, int y, map *map) {
@@ -369,6 +377,10 @@ void inputQueries(map *map, graph *graph, hashTable *table) {
             int distance = graph->results[source->index].totalDistance[destination->index];
             printf("%d ", distance);
             // Print out the path
+            if (distance == INFINITY) {
+                printf("\n");
+                continue;
+            }
             printPath(0, &graph->results[source->index], source, destination);
             printf("\n");
         }
@@ -435,7 +447,6 @@ void freeCities(cityNode *city) {
         free(currentCity);
         currentCity = nextCity;
     }
-    city = NULL;
 }
 
 int parent(int index) {
@@ -453,12 +464,9 @@ int right(int index) {
 void heapify(int index, priorityQueue *queue) {
     int leftIndex = left(index);
     int rightIndex = right(index);
-    int smallestIndex = 0;
+    int smallestIndex = index;
     if (leftIndex <= queue->size && queue->queue[leftIndex - 1]->priority < queue->queue[index - 1]->priority) {
         smallestIndex = leftIndex;
-    }
-    else {
-        smallestIndex = index;
     }
     if (rightIndex <= queue->size && queue->queue[rightIndex - 1]->priority < queue->queue[smallestIndex - 1]->priority) {
         smallestIndex = rightIndex;
@@ -502,6 +510,7 @@ void addWithPriority(city *city, int priority, priorityQueue *queue) {
     }
     queue->size = queue->size + 1;
     priorityQueueNode *node = malloc(sizeof(priorityQueueNode));
+    // TODO: Delete reachedSize
     queue->reachedSize += 1;
     node->city = city;
     node->priority = priority;
@@ -520,6 +529,7 @@ void decreasePriority(city *city, int priority, priorityQueue *queue) {
         if (queue->queue[i]->city == city) {
             if (priority < queue->queue[i]->priority) {
                 queue->queue[i]->priority = priority;
+                heapify(1, queue);
             }
             return;
         }
@@ -544,11 +554,6 @@ void heapInsert(city *city, int priority, priorityQueue *queue) {
 }
 
 void freePriorityQueue(priorityQueue *queue) {
-//    for (int i = 0; i < queue->reachedSize; i++) {
-//        if (queue->queue[i]) {
-//            free(queue->queue[i]);
-//        }
-//    }
     free(queue->queue);
 }
 
