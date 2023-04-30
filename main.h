@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define COORDINATES_SIZE 2
 #define HASH_TABLE_MULTIPLIER 2
@@ -11,6 +12,7 @@
 #define BUFFER_SIZE 64
 #define X_COORDINATE 0
 #define Y_COORDINATE 1
+#define INFINITY 2000000000;
 
 typedef struct city {
     char *name;
@@ -23,6 +25,7 @@ typedef struct city {
 
 typedef struct neighbour {
     city *city;
+    int visited;
     int distance;
     struct neighbour *next;
 } neighbour;
@@ -50,22 +53,30 @@ typedef struct map {
 typedef struct graph {
     int **visited;
     int **distances;
-    struct neighbour **adjacencyList;
+    int *totalDistance;
+    city **previous;
 } graph;
 
-typedef struct node {
+typedef struct queueNode {
     struct queueNode *next;
     int x;
     int y;
 } queueNode;
 
 typedef struct queue {
-    queueNode *head;
-    queueNode *tail;
+    struct queueNode *head;
+    struct queueNode *tail;
 } queue;
 
+typedef struct priorityQueueNode {
+    city *city;
+    int priority;
+} priorityQueueNode;
+
+
 typedef struct priorityQueue {
-    neighbour **neighbourQueue;
+    priorityQueueNode **queue;
+    int reachedSize;
     int size;
     int maxSize;
 } priorityQueue;
@@ -82,7 +93,7 @@ void enqueue(int x, int y, queue *queue);
 
 void dequeue(queue *queue);
 
-int isEmpty(queue *queue);
+int isQueueEmpty(queue *queue);
 
 void bfs(city *sourceCity, map *map, graph *graph);
 
@@ -95,8 +106,6 @@ city *findCity(int x, int y, map *map);
 neighbour *findNeighbour(int x, int y, city *city);
 
 void freeNeighbours(city *sourceCity);
-
-void fillAdjacencyList(map *map, graph *graph);
 
 void inputFlights(map *map, hashTable *table);
 
@@ -116,6 +125,23 @@ int right(int index);
 
 void heapify(int index, priorityQueue *queue);
 
+city *heapGetMin(priorityQueue *queue);
+
+void initializePriorityQueue(priorityQueue *queue, map *map, graph *graph);
+
+int isPriorityQueueEmpty(priorityQueue *queue);
+
+void addWithPriority(city *city, int priority, graph *graph, priorityQueue *queue);
+
+void decreasePriority(city *city, int priority, graph *graph, priorityQueue *queue);
+
+int contains(city *city, priorityQueue *queue);
+
+void heapInsert(city *city, int priority, graph *graph, priorityQueue *queue);
+
+void freePriorityQueue(priorityQueue *queue);
+
+void dijkstra(city *source, map *map, graph *graph);
 
 void deallocateMemory(map *map, graph *graph, hashTable *table);
 
