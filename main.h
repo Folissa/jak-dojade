@@ -116,7 +116,8 @@ void inputFlights(map *map, hashTable *table);
 
 void inputQueries(map *map, graph *graph, hashTable *table);
 
-void printPath(int stopper, result *result, city *source, city *destination);
+//void printPath(int stopper, result *result, city *source, city *destination);
+void printPath(int stopper, city **visited, city *source, city *destination);
 
 int hash(const char *string);
 

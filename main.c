@@ -10,20 +10,19 @@ int main() {
 
     findCities(&map, &graph, &table);
     findNames(&map, &table);
-
     for (int i = 0; i < map.citiesCount; i++) {
         clear(map.cities[i], &map, &graph);
         bfs(map.cities[i], &map, &graph);
     }
     inputFlights(&map, &table);
 
-    for (int i = 0; i < map.citiesCount; i++) {
-        dijkstra(map.cities[i], &map, &graph);
-        for (int j = 0; j < map.citiesCount; j++) {
-            graph.results[i].totalDistance[j] = graph.totalDistance[j];
-            graph.results[i].previous[j] = graph.previous[j];
-        }
-    }
+//    for (int i = 0; i < map.citiesCount; i++) {
+//        dijkstra(map.cities[i], &map, &graph);
+//        for (int j = 0; j < map.citiesCount; j++) {
+//            graph.results[i].totalDistance[j] = graph.totalDistance[j];
+//            graph.results[i].previous[j] = graph.previous[j];
+//        }
+//    }
 
     inputQueries(&map, &graph, &table);
 
@@ -56,7 +55,6 @@ void findCities(map *map, graph *graph, hashTable *table) {
     for (int i = 0; i < maximalCitiesCount; i++) {
         citiesCoordinates[i] = (int *) calloc(COORDINATES_SIZE, sizeof(int));
     }
-
     char input;
 
     // Input the mapVisualisation data
@@ -72,13 +70,15 @@ void findCities(map *map, graph *graph, hashTable *table) {
             }
         }
     }
+
     map->cities = (city **) calloc(map->citiesCount, sizeof(city *));
     graph->totalDistance = (int *) calloc(map->citiesCount, sizeof(int));
     graph->previous = (city **) calloc(map->citiesCount, sizeof(city *));
-    graph->results = (result *) calloc(map->citiesCount, sizeof(result));
+//    graph->results = (result *) calloc(map->citiesCount, sizeof(result));
     table->size = map->citiesCount * HASH_TABLE_MULTIPLIER;
     table->cities = (cityNode **) calloc(table->size, sizeof(cityNode *));
-    map->maximalCityNameLength = map->width + map->citiesCount;
+    // TODO: Chanhe this
+    map->maximalCityNameLength = 60;
 
     for (int i = 0; i < map->citiesCount; i++) {
         map->cities[i] = (city *) malloc(sizeof(city));
@@ -90,8 +90,8 @@ void findCities(map *map, graph *graph, hashTable *table) {
         map->cities[i]->neighboursCount = 0;
         map->cities[i]->neighbours = NULL;
         table->cities[i] = NULL;
-        graph->results[i].totalDistance = (int *) calloc(map->citiesCount, sizeof(int));
-        graph->results[i].previous = (city **) calloc(map->citiesCount, sizeof(city *));
+//        graph->results[i].totalDistance = (int *) calloc(map->citiesCount, sizeof(int));
+//        graph->results[i].previous = (city **) calloc(map->citiesCount, sizeof(city *));
     }
 
     for (int i = 0; i < maximalCitiesCount; i++) {
@@ -369,30 +369,46 @@ void inputQueries(map *map, graph *graph, hashTable *table) {
         city *destination = lookupCity(token, table);
         token = strtok(NULL, " ");
         // Type
+        dijkstra(source, map, graph);
         int type = atoi(token);
         if (type == 0) {
-            int distance = graph->results[source->index].totalDistance[destination->index];
+            // TODO: HERE
+            int distance = graph->totalDistance[destination->index];
+//            int distance = graph->results[source->index].totalDistance[destination->index];
             printf("%d\n", distance);
         } else if (type == 1) {
-            int distance = graph->results[source->index].totalDistance[destination->index];
+            int distance = graph->totalDistance[destination->index];
+//            int distance = graph->results[source->index].totalDistance[destination->index];
             printf("%d ", distance);
             // Print out the path
+            // TODO: HERE
             if (distance == INFINITY) {
                 printf("\n");
                 continue;
             }
-            printPath(0, &graph->results[source->index], source, destination);
+//            printPath(0, &graph->results[source->index], source, destination);
+           printPath(0, graph->previous, source, destination);
             printf("\n");
         }
     }
 }
+//
+//void printPath(int stopper, result *result, city *source, city *destination) {
+//    stopper++;
+//    if (destination->index == source->index) {
+//        return;
+//    }
+//    printPath(stopper, result, source, result->previous[destination->index]);
+//    if (stopper != 1)
+//        printf("%s ", destination->name);
+//}
 
-void printPath(int stopper, result *result, city *source, city *destination) {
+void printPath(int stopper, city **previous, city *source, city *destination) {
     stopper++;
     if (destination->index == source->index) {
         return;
     }
-    printPath(stopper, result, source, result->previous[destination->index]);
+    printPath(stopper, previous, source, previous[destination->index]);
     if (stopper != 1)
         printf("%s ", destination->name);
 }
@@ -605,15 +621,15 @@ void deallocateMemory(map *map, graph *graph, hashTable *table) {
         free(map->cities[i]->name);
         freeNeighbours(map->cities[i]);
         free(map->cities[i]);
-        free(graph->results[i].totalDistance);
-        free(graph->results[i].previous);
+//        free(graph->results[i].totalDistance);
+//        free(graph->results[i].previous);
     }
     for (int i = 0; i < table->size; i++) {
         freeCities(table->cities[i]);
     }
     free(table->cities);
     free(graph->previous);
-    free(graph->results);
+//    free(graph->results);
     free(graph->totalDistance);
     free(map->cities);
 }
