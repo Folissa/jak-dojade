@@ -14,10 +14,12 @@
 #define Y_COORDINATE 1
 #define MAXIMUM_CITY_NAME_LENGTH 32
 #define INF 2000000000
+#define DIGIT_GROUP 5
 
 typedef struct city {
     char *name;
     int index;
+    int priorityHeapIndex;
     int x;
     int y;
     int neighboursCount;

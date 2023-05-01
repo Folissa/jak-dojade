@@ -75,6 +75,7 @@ void findCities(map *map, graph *graph, hashTable *table) {
     for (int i = 0; i < map->citiesCount; i++) {
         map->cities[i] = (city *) malloc(sizeof(city));
         map->cities[i]->index = i;
+        map->cities[i]->priorityHeapIndex = -1;
         map->cities[i]->name = (char *) malloc(map->maximalCityNameLength * sizeof(char));
         memset(map->cities[i]->name, '\0', map->maximalCityNameLength);
         map->cities[i]->x = citiesCoordinates[i][X_COORDINATE];
@@ -353,16 +354,6 @@ void printPath(int stopper, city **previous, city *source, city *destination) {
         printf("%s ", destination->name);
 }
 
-//int hash(const char *string) {
-//    int key = 0, i = 0;
-//
-//    while (string[i] != '\0') {
-//        key += string[i];
-//        i++;
-//    }
-//    return key;
-//}
-
 int power(int base, int power) {
     int i, result = 1;
 
@@ -373,7 +364,6 @@ int power(int base, int power) {
 }
 
 int hash(const char *string) {
-    int digitGroup = 5;
     int base = 'Z' - 'A' + 1;
     int digitPosition = 0;
     int key = 0;
@@ -382,7 +372,7 @@ int hash(const char *string) {
         if (charFromString >= 'A' && charFromString <= 'Z') {
             int digit = charFromString - 'A';
             key += digit * power(base, digitPosition);
-            digitPosition = (digitPosition + 1) % (digitGroup + 1);
+            digitPosition = (digitPosition + 1) % (DIGIT_GROUP + 1);
             }
         }
     return key;
@@ -456,7 +446,9 @@ void heapify(int index, priorityQueue *queue) {
     if (smallestIndex != index) {
         priorityQueueNode *temporary = queue->queue[index - 1];
         queue->queue[index - 1] = queue->queue[smallestIndex - 1];
+        queue->queue[index - 1]->city->priorityHeapIndex = index - 1;
         queue->queue[smallestIndex - 1] = temporary;
+        queue->queue[smallestIndex - 1]->city->priorityHeapIndex = smallestIndex - 1;
         heapify(smallestIndex, queue);
     }
 }
@@ -466,6 +458,7 @@ city *heapGetMin(priorityQueue *queue) {
         return NULL;
     else {
         city *minimumCity = queue->queue[0]->city;
+        minimumCity->priorityHeapIndex = -1;
         free(queue->queue[0]);
         queue->queue[0] = queue->queue[queue->size - 1];
         queue->size = queue->size - 1;
@@ -497,29 +490,26 @@ void addWithPriority(city *city, int priority, priorityQueue *queue) {
     int index = queue->size;
     while (index > 1 && queue->queue[parent(index) - 1]->priority > priority) {
         queue->queue[index - 1] = queue->queue[parent(index) - 1];
+        queue->queue[index - 1]->city->priorityHeapIndex = index - 1;
         index = parent(index);
     }
 
     queue->queue[index - 1] = node;
+    queue->queue[index - 1]->city->priorityHeapIndex = index - 1;
 }
 
 void decreasePriority(city *city, int priority, priorityQueue *queue) {
-    for (int i = 0; i < queue->size; i++) {
-        if (queue->queue[i]->city == city) {
-            if (priority < queue->queue[i]->priority) {
-                queue->queue[i]->priority = priority;
-                heapify(1, queue);
-            }
-            return;
-        }
+    int index = city->priorityHeapIndex;
+    if (priority < queue->queue[index]->priority) {
+        queue->queue[index]->priority = priority;
+        heapify(1, queue);
     }
 }
 
 int contains(city *city, priorityQueue *queue) {
-    for (int i = 0; i < queue->size; i++) {
-        if (queue->queue[i]->city == city) {
-            return 1;
-        }
+    int index = city->priorityHeapIndex;
+    if (index >= 0 && index < queue->size) {
+        return 1;
     }
     return 0;
 }
