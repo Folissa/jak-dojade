@@ -353,13 +353,38 @@ void printPath(int stopper, city **previous, city *source, city *destination) {
         printf("%s ", destination->name);
 }
 
-int hash(const char *string) {
-    int key = 0, i = 0;
+//int hash(const char *string) {
+//    int key = 0, i = 0;
+//
+//    while (string[i] != '\0') {
+//        key += string[i];
+//        i++;
+//    }
+//    return key;
+//}
 
-    while (string[i] != '\0') {
-        key += string[i];
-        i++;
-    }
+int power(int base, int power) {
+    int i, result = 1;
+
+    for (i = 0; i < power; ++i)
+        result *= base;
+
+    return result;
+}
+
+int hash(const char *string) {
+    int digitGroup = 5;
+    int base = 'Z' - 'A' + 1;
+    int digitPosition = 0;
+    int key = 0;
+    for (int i = 0; string[i] != '\0'; i++) {
+        int charFromString = toupper(string[i]);
+        if (charFromString >= 'A' && charFromString <= 'Z') {
+            int digit = charFromString - 'A';
+            key += digit * power(base, digitPosition);
+            digitPosition = (digitPosition + 1) % (digitGroup + 1);
+            }
+        }
     return key;
 }
 
@@ -519,7 +544,7 @@ void dijkstra(city *source, map *map, graph *graph) {
 
     for (int i = 0; i < map->citiesCount; i++) {
         if (i != source->index) {
-            graph->totalDistance[i] = INFINITY;
+            graph->totalDistance[i] = INF;
             graph->previous[i] = NULL;
         }
         heapInsert(map->cities[i], graph->totalDistance[i], &queue);
@@ -542,7 +567,6 @@ void dijkstra(city *source, map *map, graph *graph) {
             currentNeighbor = currentNeighbor->next;
         }
     }
-    // The result is in graph struct
     freePriorityQueue(&queue);
 }
 
@@ -559,15 +583,12 @@ void deallocateMemory(map *map, graph *graph, hashTable *table) {
         free(map->cities[i]->name);
         freeNeighbours(map->cities[i]);
         free(map->cities[i]);
-//        free(graph->results[i].totalDistance);
-//        free(graph->results[i].previous);
     }
     for (int i = 0; i < table->size; i++) {
         freeCities(table->cities[i]);
     }
     free(table->cities);
     free(graph->previous);
-//    free(graph->results);
     free(graph->totalDistance);
     free(map->cities);
 }

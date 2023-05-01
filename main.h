@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define COORDINATES_SIZE 2
 #define HASH_TABLE_MULTIPLIER 2
@@ -12,7 +13,7 @@
 #define X_COORDINATE 0
 #define Y_COORDINATE 1
 #define MAXIMUM_CITY_NAME_LENGTH 32
-#define INFINITY 2000000000
+#define INF 2000000000
 
 typedef struct city {
     char *name;
@@ -111,6 +112,8 @@ void inputFlights(map *map, hashTable *table);
 void inputQueries(map *map, graph *graph, hashTable *table);
 
 void printPath(int stopper, city **previous, city *source, city *destination);
+
+int power(int base, int power);
 
 int hash(const char *string);
 
