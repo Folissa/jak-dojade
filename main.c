@@ -338,21 +338,29 @@ void inputQueries(map *map, graph *graph, hashTable *table) {
         } else if (type == 1) {
             int distance = graph->totalDistance[destination->index];
             printf("%d ", distance);
-            printPath(0, graph->previous, source, destination);
+            printPath(map, graph->previous, source, destination);
             printf("\n");
         }
     }
 }
 
-void printPath(int stopper, city **previous, city *source, city *destination) {
-    stopper++;
-    if (destination->index == source->index) {
-        return;
+void printPath(map *map, city **previous, city *source, city *destination) {
+    city *current = destination;
+    int stopper = 0;
+    city **path = (city **) calloc(map->citiesCount, sizeof(city *));
+
+    while (current != source) {
+        path[stopper++] = current;
+        current = previous[current->index];
     }
-    printPath(stopper, previous, source, previous[destination->index]);
-    if (stopper != 1)
-        printf("%s ", destination->name);
+
+    for (int i = stopper - 1; i > 0; i--) {
+        printf("%s ", path[i]->name);
+    }
+
+    free(path);
 }
+
 
 int power(int base, int power) {
     int i, result = 1;

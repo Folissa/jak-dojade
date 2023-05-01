@@ -113,7 +113,7 @@ void inputFlights(map *map, hashTable *table);
 
 void inputQueries(map *map, graph *graph, hashTable *table);
 
-void printPath(int stopper, city **previous, city *source, city *destination);
+void printPath(map *map, city **previous, city *source, city *destination);
 
 int power(int base, int power);
 
